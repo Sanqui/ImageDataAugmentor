@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import os
 import warnings
+import random
 
 import numpy as np
 import cv2
@@ -146,8 +147,8 @@ def _iter_valid_files(directory, white_list_formats, follow_links):
                 yield root, fname
 
 
-def _list_valid_filenames_in_directory(directory, white_list_formats, split,
-                                       class_indices, follow_links):
+def _list_valid_filenames_in_directory(directory, white_list_formats, split, shuffle,
+                                       seed, class_indices, follow_links):
     """Lists paths of files in `subdir` with extensions in `white_list_formats`.
 
     # Arguments
@@ -171,16 +172,22 @@ def _list_valid_filenames_in_directory(directory, white_list_formats, split,
             `["class1/file1.jpg", "class1/file2.jpg", ...]`).
     """
     dirname = os.path.basename(directory)
+
+    valid_files = _iter_valid_files(
+        directory, white_list_formats, follow_links)
+      
     if split:
-        num_files = len(list(
-            _iter_valid_files(directory, white_list_formats, follow_links)))
+        valid_files = list(valid_files)
+        num_files = len(valid_files)
         start, stop = int(split[0] * num_files), int(split[1] * num_files)
-        valid_files = list(
-            _iter_valid_files(
-                directory, white_list_formats, follow_links))[start: stop]
-    else:
-        valid_files = _iter_valid_files(
-            directory, white_list_formats, follow_links)
+        if shuffle:
+            if seed is not None:
+                random.seed(seed)
+        valid_files.sort()
+        random.shuffle(valid_files)
+    
+        valid_files = valid_files[start:stop]
+      
     classes = []
     filenames = []
     for root, fname in valid_files:
